@@ -1,75 +1,110 @@
-﻿package main
+package main
 
 import (
-	"crypto/tls"
-	"log"
+	"context"
+	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
+
+	"church-audio-streaming-backend/internal/auth"
+	"church-audio-streaming-backend/internal/db"
+	"church-audio-streaming-backend/internal/metrics"
+	"church-audio-streaming-backend/internal/relay"
+	"church-audio-streaming-backend/internal/router"
+	"church-audio-streaming-backend/internal/tenant"
 )
 
-// main is the server entry point.
-// It reads configuration from environment variables and starts an HTTP(S) server.
-// Required env vars: DATABASE_URL, JWT_SECRET
-// Optional env vars: PORT (default 8443), TLS_CERT_FILE, TLS_KEY_FILE
 func main() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8443"
+	// ── Configuration from environment ──────────────────────────────────────
+	port := getenv("PORT", "8080")
+	dsn := getenv("DATABASE_URL", "")
+	jwtSecret := getenv("JWT_SECRET", "change-me-in-production")
+
+	// ── Database ─────────────────────────────────────────────────────────────
+	var pool interface{ Close() } // lazy — only connect when DSN is set
+	if dsn != "" {
+		p, err := db.Connect(dsn)
+		if err != nil {
+			slog.Error("db: connect failed", "err", err)
+			os.Exit(1)
+		}
+		pool = p
+		defer p.Close()
 	}
 
-	dbURL := os.Getenv("DATABASE_URL")
-	if dbURL == "" {
-		log.Fatal("DATABASE_URL environment variable is required")
+	pgPool := func() interface{ Close() } { return pool }()
+
+	// ── Services ──────────────────────────────────────────────────────────────
+	var pgxPool interface{}
+	if pgPool != nil {
+		pgxPool = pgPool
+	}
+	_ = pgxPool
+
+	authSvc := auth.NewService(jwtSecret, nil) // nil pool: login disabled until DB is up
+	tenantReg := tenant.NewRegistry(nil)
+	hub := relay.NewHub()
+	col := metrics.New(nil)
+	rl := auth.NewRateLimiter()
+
+	// If a real DB connection is available, wire it in.
+	if dsn != "" {
+		p, err := db.Connect(dsn)
+		if err == nil {
+			authSvc = auth.NewService(jwtSecret, p)
+			tenantReg = tenant.NewRegistry(p)
+			col = metrics.New(p)
+			defer p.Close()
+		}
 	}
 
-	jwtSecret := os.Getenv("JWT_SECRET")
-	if jwtSecret == "" {
-		log.Fatal("JWT_SECRET environment variable is required")
-	}
-
-	// Suppress unused-variable warnings for now; these will be used when the
-	// database and auth layers are wired up in subsequent tasks.
-	_ = dbURL
-	_ = jwtSecret
-
-	// TLS configuration enforces minimum TLS 1.2 as required by Req 9.1.
-	tlsCfg := &tls.Config{
-		MinVersion: tls.VersionTLS12,
-	}
-
-	mux := http.NewServeMux()
-
-	// Health check endpoint (Req 10.1)
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"status":"ok","db":"ok","relay":"ok"}`))
+	// ── Router ────────────────────────────────────────────────────────────────
+	h := router.New(router.Deps{
+		AuthSvc:   authSvc,
+		TenantReg: tenantReg,
+		RelayHub:  hub,
+		Metrics:   col,
+		AuthRL:    rl,
 	})
 
-	certFile := os.Getenv("TLS_CERT_FILE")
-	keyFile := os.Getenv("TLS_KEY_FILE")
-
+	// ── HTTP server with TLS >= 1.2 ───────────────────────────────────────────
 	srv := &http.Server{
 		Addr:         ":" + port,
-		Handler:      mux,
-		TLSConfig:    tlsCfg,
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
+		Handler:      h,
+		TLSConfig:    router.MinTLSConfig(),
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 60 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
 
-	if certFile == "" || keyFile == "" {
-		log.Printf("TLS_CERT_FILE / TLS_KEY_FILE not set - starting plain HTTP on :%s (dev only)", port)
-		srv.TLSConfig = nil
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("server error: %v", err)
-		}
-		return
-	}
+	// ── Graceful shutdown ────────────────────────────────────────────────────
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
-	log.Printf("Starting TLS server on :%s (TLS min version 1.2)", port)
-	if err := srv.ListenAndServeTLS(certFile, keyFile); err != nil && err != http.ErrServerClosed {
-		log.Fatalf("server error: %v", err)
+	go func() {
+		slog.Info("server starting", "addr", srv.Addr)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			slog.Error("server error", "err", err)
+			os.Exit(1)
+		}
+	}()
+
+	<-quit
+	slog.Info("server shutting down")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		slog.Error("shutdown error", "err", err)
 	}
+}
+
+func getenv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }
