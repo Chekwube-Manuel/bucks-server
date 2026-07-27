@@ -94,10 +94,10 @@ func (h *Hub) ConnectBroadcaster(streamID string, offer webrtc.SessionDescriptio
 	s.broadcaster = pc
 	s.Status = StatusLive
 
-	// Start the RTP-forwarding goroutine — waits for the track then fans out.
+	// Start the RTP-forwarding goroutine â€” waits for the track then fans out.
 	go s.forwardLoop(trackCh)
 
-	return pc.LocalDescription(), nil
+	ld := pc.LocalDescription(); if ld == nil { pc.Close(); return webrtc.SessionDescription{}, fmt.Errorf("LocalDescription is nil") }; return *ld, nil
 }
 
 // ConnectListener creates a Pion PeerConnection for a new listener, adds a
@@ -154,11 +154,11 @@ func (h *Hub) ConnectListener(streamID string, offer webrtc.SessionDescription) 
 
 	s.listenerPeers = append(s.listenerPeers, &listenerPeer{pc: pc, track: localTrack})
 
-	return pc.LocalDescription(), nil
+	ld := pc.LocalDescription(); if ld == nil { pc.Close(); return webrtc.SessionDescription{}, fmt.Errorf("LocalDescription is nil") }; return *ld, nil
 }
 
 // PauseStream suspends RTP forwarding and injects silence into all listener
-// tracks (Req 7.3). Status transitions: live → paused.
+// tracks (Req 7.3). Status transitions: live â†’ paused.
 func (h *Hub) PauseStream(streamID string) error {
 	s, err := h.getStream(streamID)
 	if err != nil {
@@ -174,7 +174,7 @@ func (h *Hub) PauseStream(streamID string) error {
 	return nil
 }
 
-// ResumeStream re-enables RTP forwarding (Req 7.3). Status: paused → live.
+// ResumeStream re-enables RTP forwarding (Req 7.3). Status: paused â†’ live.
 func (h *Hub) ResumeStream(streamID string) error {
 	s, err := h.getStream(streamID)
 	if err != nil {
@@ -279,7 +279,7 @@ func (s *Stream) forwardLoop(trackCh <-chan *webrtc.TrackRemote) {
 		s.mu.RUnlock()
 
 		if paused {
-			// Inject silence (empty Opus packet) — 8 zero bytes is a valid
+			// Inject silence (empty Opus packet) â€” 8 zero bytes is a valid
 			// comfort-noise Opus frame recognised by most decoders.
 			silence := []byte{0xf8, 0xff, 0xfe, 0x00, 0x00, 0x00, 0x00, 0x00}
 			s.writeToListeners(peers, silence)

@@ -15,7 +15,7 @@ import (
 // After FinaliseStream the persisted StreamRecord has non-null started_at,
 // ended_at, peak_listeners, and avg_bitrate_kbps.
 //
-// We use a nil pool (no DB) so FinaliseStream is a no-op â€” what we prove is
+// We use a nil pool (no DB) so FinaliseStream is a no-op ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â what we prove is
 // that the StreamRecord struct built by the caller always carries all required
 // fields before the call. This is the contract the relay layer must satisfy.
 func TestProperty9_StreamMetadataCompleteness(t *testing.T) {
@@ -36,7 +36,7 @@ func TestProperty9_StreamMetadataCompleteness(t *testing.T) {
 			StartedAt:       startedAt,
 			EndedAt:         &endedAt,
 			PeakListeners:   listenerCount,
-			AvgBitrateKbps:  avgBitrate,
+			AvgBitrateKbps: func() *float64 { f := float64(avgBitrate); return &f }(),
 		}
 
 		// Assert all required fields are non-zero before calling FinaliseStream.

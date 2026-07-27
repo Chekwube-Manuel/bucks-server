@@ -1,5 +1,5 @@
 // Package metrics registers a Prometheus registry with per-tenant gauges and
-// counters (Req 7.6, 5.6, 10.1–10.3, 10.5).
+// counters (Req 7.6, 5.6, 10.1â€“10.3, 10.5).
 package metrics
 
 import (
@@ -115,10 +115,10 @@ func (c *Collector) RecordBitrateEvent(ctx context.Context, streamID, tenantID s
 	if err := db.InsertBitrateEvent(ctx, c.pool, db.BitrateEvent{
 		StreamID:        streamID,
 		TenantID:        tenantID,
-		PrevBitrateKbps: prevKbps,
-		NewBitrateKbps:  newKbps,
-		DetectedBwKbps:  detectedBwKbps,
-		RecordedAt:      time.Now().UTC(),
+		PrevBitrate: prevKbps,
+		NewBitrate:  newKbps,
+		DetectedBW:  detectedBwKbps,
+		OccurredAt:      time.Now().UTC(),
 	}); err != nil {
 		slog.Error("metrics: insert bitrate event", "err", err)
 	}
