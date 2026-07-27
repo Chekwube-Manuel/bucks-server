@@ -1,4 +1,4 @@
-﻿module church-audio-streaming-backend
+module church-audio-streaming-backend
 
 go 1.22
 
