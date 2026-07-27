@@ -1,0 +1,32 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+server
+
+# Go test cache & coverage
+*.test
+*.out
+coverage.html
+
+# Environment files
+.env
+.env.local
+
+# Build output
+/dist/
+/bin/
+
+# IDE & OS
+.idea/
+.vscode/
+*.DS_Store
+Thumbs.db
+
+# TLS certs
+*.pem
+*.key
+*.crt
+*.csr
