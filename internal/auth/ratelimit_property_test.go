@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/flyingmutant/rapid"
+	"pgregory.net/rapid"
 
 	"church-audio-streaming-backend/internal/auth"
 )
@@ -46,7 +46,7 @@ func TestProperty8_AuthRateLimitEnforcement(t *testing.T) {
 		for i := 0; i < limit; i++ {
 			rl.RecordFailure(ip)
 			rr := makeReq()
-			// Still within the window — middleware should pass through (401 from inner).
+			// Still within the window â€” middleware should pass through (401 from inner).
 			if rr.Code == http.StatusTooManyRequests {
 				tc.Fatalf("failure %d/%d: got 429 before limit was reached", i+1, limit)
 			}

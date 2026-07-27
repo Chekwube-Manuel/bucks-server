@@ -4,7 +4,7 @@ go 1.22
 
 require (
 	github.com/coder/websocket v1.8.12
-	github.com/flyingmutant/rapid v1.1.0
+	pgregory.net/rapid v1.1.0
 	github.com/go-chi/chi/v5 v5.2.1
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/jackc/pgx/v5 v5.7.2

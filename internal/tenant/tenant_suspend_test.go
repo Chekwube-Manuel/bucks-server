@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/flyingmutant/rapid"
+	"pgregory.net/rapid"
 
 	"church-audio-streaming-backend/internal/tenant"
 )
@@ -61,7 +61,7 @@ func TestProperty3_SuspendedTenantStreamStopper(t *testing.T) {
 		reg.UnregisterStreamStopper(tenantID)
 
 		// Neither the old stopper (from the loop) nor the fresh stopper should
-		// have been called — UnregisterStreamStopper must not invoke the stopper.
+		// have been called â€” UnregisterStreamStopper must not invoke the stopper.
 		if atomic.LoadInt64(&callCount) != 0 {
 			tc.Fatalf("old stoppers were called during Unregister: got %d calls", callCount)
 		}

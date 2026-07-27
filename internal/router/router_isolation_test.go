@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flyingmutant/rapid"
+	"pgregory.net/rapid"
 	"github.com/golang-jwt/jwt/v5"
 
 	"church-audio-streaming-backend/internal/auth"
@@ -30,7 +30,7 @@ func TestProperty1_TenantIsolation(t *testing.T) {
 			tc.Skip("same slug, skip")
 		}
 
-		// Build minimal deps (nil DB — tenant registry will return not-found).
+		// Build minimal deps (nil DB â€” tenant registry will return not-found).
 		authSvc := auth.NewService(secret, nil)
 		tenantReg := tenant.NewRegistry(nil)
 		hub := relay.NewHub()
@@ -56,11 +56,11 @@ func TestProperty1_TenantIsolation(t *testing.T) {
 		rr := httptest.NewRecorder()
 		h.ServeHTTP(rr, req)
 
-		// The response must be 401, 403, or 404 — never 200 with tenant B data.
+		// The response must be 401, 403, or 404 â€” never 200 with tenant B data.
 		code := rr.Code
 		if code == http.StatusOK {
 			tc.Fatalf(
-				"tenant A token got 200 on tenant B (%s) endpoint — isolation violated",
+				"tenant A token got 200 on tenant B (%s) endpoint â€” isolation violated",
 				slugB,
 			)
 		}

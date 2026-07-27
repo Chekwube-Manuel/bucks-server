@@ -5,20 +5,20 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/flyingmutant/rapid"
+	"pgregory.net/rapid"
 
 	"church-audio-streaming-backend/internal/tenant"
 )
 
 // TestProperty7_UnrecognisedTenantNoLeakage verifies Property 7:
 // Any slug not in the known tenant set returns ErrTenantNotFound and nothing
-// else — no information about other tenants leaks through the error.
+// else â€” no information about other tenants leaks through the error.
 //
 // We use a nil DB (no connection) so GetBySlug must fail at the DB layer.
 // The Registry must translate any pgx.ErrNoRows into ErrTenantNotFound.
 // We drive random slug strings and assert the contract holds.
 func TestProperty7_UnrecognisedTenantNoLeakage(t *testing.T) {
-	// Registry with nil pool — any slug will produce a DB error which the
+	// Registry with nil pool â€” any slug will produce a DB error which the
 	// registry must convert to ErrTenantNotFound (not expose the raw pg error).
 	reg := tenant.NewRegistry(nil)
 
@@ -30,11 +30,11 @@ func TestProperty7_UnrecognisedTenantNoLeakage(t *testing.T) {
 			tc.Fatalf("slug %q: expected error, got nil", slug)
 		}
 
-		// The error must be (or wrap) ErrTenantNotFound — not a raw database
+		// The error must be (or wrap) ErrTenantNotFound â€” not a raw database
 		// error that would reveal internal state.
 		if !errors.Is(err, tenant.ErrTenantNotFound) {
 			// Any error is acceptable as long as it is wrapped / is ErrTenantNotFound.
-			// With a nil pool the pgxpool panics or returns a connection error —
+			// With a nil pool the pgxpool panics or returns a connection error â€”
 			// the registry wraps it. The key invariant is that a nil-pool error
 			// is NOT silently swallowed (err != nil) AND does not accidentally
 			// return a non-error (nil) that would indicate a found tenant.

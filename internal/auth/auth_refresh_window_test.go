@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flyingmutant/rapid"
+	"pgregory.net/rapid"
 	"github.com/golang-jwt/jwt/v5"
 
 	"church-audio-streaming-backend/internal/auth"

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flyingmutant/rapid"
+	"pgregory.net/rapid"
 
 	"church-audio-streaming-backend/internal/db"
 	"church-audio-streaming-backend/internal/metrics"
@@ -15,7 +15,7 @@ import (
 // After FinaliseStream the persisted StreamRecord has non-null started_at,
 // ended_at, peak_listeners, and avg_bitrate_kbps.
 //
-// We use a nil pool (no DB) so FinaliseStream is a no-op — what we prove is
+// We use a nil pool (no DB) so FinaliseStream is a no-op â€” what we prove is
 // that the StreamRecord struct built by the caller always carries all required
 // fields before the call. This is the contract the relay layer must satisfy.
 func TestProperty9_StreamMetadataCompleteness(t *testing.T) {

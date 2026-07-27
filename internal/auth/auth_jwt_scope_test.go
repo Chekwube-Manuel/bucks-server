@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flyingmutant/rapid"
+	"pgregory.net/rapid"
 	"github.com/golang-jwt/jwt/v5"
 
 	"church-audio-streaming-backend/internal/auth"
@@ -22,7 +22,7 @@ import (
 // claims.TenantID and compares it against the URL tenant slug. Here we prove
 // that:
 //   - A token issued for tenantA carries TenantID == tenantA.
-//   - That TenantID != tenantB for all generated pairs A ≠ B.
+//   - That TenantID != tenantB for all generated pairs A â‰  B.
 //
 // This property guarantees the JWT payload cannot be silently mutated to grant
 // cross-tenant access; the middleware can rely on claims.TenantID being
@@ -59,7 +59,7 @@ func TestProperty2_JWTTenantScopeEnforcement(t *testing.T) {
 			tc.Fatalf("expected TenantID %q, got %q", tenantA, claims.TenantID)
 		}
 
-		// The token must NOT match tenantB — middleware uses this claim to
+		// The token must NOT match tenantB â€” middleware uses this claim to
 		// enforce the 403.
 		if claims.TenantID == tenantB {
 			tc.Fatalf(
